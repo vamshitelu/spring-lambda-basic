@@ -79,7 +79,7 @@ resource "aws_apigatewayv2_api" "http_api" {
 resource "aws_apigatewayv2_integration" "lambda_integration" {
   api_id           = aws_apigatewayv2_api.http_api.id
   integration_type = "AWS_PROXY"
-  integration_uri = "aws_lambda_function.speingboot_lambda_basic.invoke_arn"
+  integration_uri = aws_lambda_function.springboot_lambda_basic.invoke_arn
   integration_method = "POST"
 }
 
@@ -96,7 +96,7 @@ resource "aws_apigatewayv2_stage" "default" {
 }
 
 output "lambda_function_name" {
-  value = aws_lambda_function.speingboot_lambda_basic.function_name
+  value = aws_lambda_function.springboot_lambda_basic.function_name
 }
 
 output "api_endpoint" {
