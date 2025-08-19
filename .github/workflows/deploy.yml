@@ -1,0 +1,63 @@
+name: "Deploy SpringBoot Lambda Basic application"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        options:
+          - dev
+          - staging
+          - prod
+        default: 'dev'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: ${{github.event.input.environment}}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build with maven
+        run: mvn clean package -DskipTests -Pshaded-jar
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
+          aws-secret-access-key: ${{secrets.AWS_SECRETS_ACCESS_KEY}}
+          aws-region: ap-south-1
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7
+
+      - name: Terraform Init
+        run: |
+          if [ -f .terraform.lock.hcl ]; then
+            rm .terraform.lock.hcl
+            fi
+          terraform init
+        working-directory: infra
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: infra
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: infra
+
