@@ -65,41 +65,69 @@ resource "aws_lambda_permission" "apigw_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.springboot_lambda_basic.function_name
   principal    = "apigateway.amazonaws.com"
+    source_arn   = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*/*"
 }
 
 #----------------------------------------
-# API Gateway (Optional - to expose Http endpoint)
+# API Gateway (Optional - to expose REST endpoint)
 #----------------------------------------
-resource "aws_apigatewayv2_api" "http_api" {
-  name        = "springboot-http-api"
+resource "aws_api_gateway_rest_api" "rest_api" {
+  name        = "springboot-rest-api"
   description = "API Gateway for Spring Boot Lambda Function"
-  protocol_type = "HTTP"
 }
 
-resource "aws_apigatewayv2_integration" "lambda_integration" {
-  api_id           = aws_apigatewayv2_api.http_api.id
-  integration_type = "AWS_PROXY"
- # integration_uri = aws_lambda_function.springboot_lambda_basic.invoke_arn
-  integration_uri = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${aws_lambda_function.springboot_lambda_basic.arn}/invocations"
-  integration_method = "POST"
+#----------------------------------------
+# Root Resource
+#----------------------------------------
+data "aws_api_gateway_resource" "root" {
+  path        = "/"
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
 }
 
-resource "aws_apigatewayv2_route" "default_route"{
-  api_id = aws_apigatewayv2_api.http_api.id
-  route_key = "ANY /{proxy+}"
-  target = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+#----------------------------------------
+#Resource proxy
+#----------------------------------------
+resource "aws_api_gateway_resource" "proxy" {
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  parent_id   = data.aws_api_gateway_resource.root.id
+  path_part   = "{proxy+}"
+}
+#----------------------------------------
+# Method for Proxy Resource
+#----------------------------------------
+resource "aws_api_gateway_method" "proxy_method" {
+  authorization = "NONE"
+  http_method   = "ANY"
+  resource_id   = aws_api_gateway_resource.proxy.id
+  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
 }
 
-resource "aws_apigatewayv2_stage" "default" {
-  api_id = aws_apigatewayv2_api.http_api.id
-  name   = "$default"
-  auto_deploy = true
+#----------------------------------------
+#Lambda Integration
+#----------------------------------------
+resource "aws_api_gateway_integration" "lambda_integration" {
+  http_method = aws_api_gateway_method.proxy_method.http_method
+  resource_id = aws_api_gateway_resource.proxy.id
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  integration_http_method = "POST"
+  type        = "AWS_PROXY"
+  uri         = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${aws_lambda_function.springboot_lambda_basic.arn}/invocations"
 }
 
+#----------------------------------------
+# Deployment
+#----------------------------------------
+resource "aws_api_gateway_deployment" "rest_api_deployment" {
+  depends_on = [
+    aws_api_gateway_integration.lambda_integration
+  ]
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  stage_name  = "dev"
+}
 output "lambda_function_name" {
   value = aws_lambda_function.springboot_lambda_basic.function_name
 }
 
 output "api_endpoint" {
-  value = aws_apigatewayv2_stage.default.invoke_url
+  value = "${aws_api_gateway_deployment.rest_api_deployment.invoke_url}"
 }
