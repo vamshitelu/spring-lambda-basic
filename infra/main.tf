@@ -45,7 +45,7 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
 #--------------------------------------
 # Lambda Function
 #----------------------------------------
-resource "aws_lambda_function" "speingboot_lambda_basic" {
+resource "aws_lambda_function" "springboot_lambda_basic" {
   function_name = var.lambda_function_name
   role          = aws_iam_role.lambda_exec.arn
   handler       = "com.vsoft.StreamLambdaHandler::handleRequest"
@@ -63,7 +63,7 @@ resource "aws_lambda_function" "speingboot_lambda_basic" {
 resource "aws_lambda_permission" "apigw_invoke" {
   statement_id = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.speingboot_lambda_basic.function_name
+  function_name = aws_lambda_function.springboot_lambda_basic.function_name
   principal    = "apigateway.amazonaws.com"
 }
 
@@ -77,13 +77,14 @@ resource "aws_apigatewayv2_api" "http_api" {
 }
 
 resource "aws_apigatewayv2_integration" "lambda_integration" {
-  api_id           = "aws_apigatewayv2_api.http_api.id"
+  api_id           = aws_apigatewayv2_api.http_api.id
   integration_type = "AWS_PROXY"
   integration_uri = "aws_lambda_function.speingboot_lambda_basic.invoke_arn"
+  integration_method = "POST"
 }
 
 resource "aws_apigatewayv2_route" "default_route"{
-  api_id = "aws_apigatewayv2_api.http_api.id"
+  api_id = aws_apigatewayv2_api.http_api.id
   route_key = "ANY /{proxy+}"
   target = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
