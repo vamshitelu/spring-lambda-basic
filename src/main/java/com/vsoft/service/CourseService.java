@@ -21,10 +21,11 @@ public class CourseService {
 
     public Course getCourseById(Long id){
         log.info("getCourseById method called.");
-        return list.stream().filter(x->x.getId().equals(id)).findFirst().get();
+        return list.stream().filter(x->x.getId().equals(id)).findFirst().orElseThrow();
     }
 
     public Course addCourse(Course course){
+        System.out.println("Course :"+course.getCourseName());
         log.info("addCourse method called.");
         list.add(course);
         return course;
