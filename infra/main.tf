@@ -79,7 +79,8 @@ resource "aws_apigatewayv2_api" "http_api" {
 resource "aws_apigatewayv2_integration" "lambda_integration" {
   api_id           = aws_apigatewayv2_api.http_api.id
   integration_type = "AWS_PROXY"
-  integration_uri = aws_lambda_function.springboot_lambda_basic.invoke_arn
+ # integration_uri = aws_lambda_function.springboot_lambda_basic.invoke_arn
+  integration_uri = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${aws_lambda_function.springboot_lambda_basic.arn}/invocations"
   integration_method = "POST"
 }
 
