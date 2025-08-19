@@ -28,13 +28,13 @@ public class CourseController {
     }
 
     @PostMapping
-    public ResponseEntity<Course> addCourse(Course course){
+    public ResponseEntity<Course> addCourse(@RequestBody Course course){
         Course newcourse = courseService.addCourse(course);
         return ResponseEntity.status(201).body(newcourse);
     }
 
     @PutMapping
-    public ResponseEntity<Course> updateCourse(Course course){
+    public ResponseEntity<Course> updateCourse(@RequestBody Course course){
         Course updatedCourse = courseService.updateCourse(course);
         return ResponseEntity.ok(updatedCourse);
     }
