@@ -118,13 +118,11 @@ resource "aws_api_gateway_integration" "lambda_integration" {
 # Deployment
 #----------------------------------------
 resource "aws_api_gateway_deployment" "rest_api_deployment" {
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
   depends_on = [
     aws_api_gateway_integration.lambda_integration
   ]
-  triggers = {
-    redeployment = sha1(jsonencode(aws_api_gateway_rest_api.rest_api.body))
-  }
-  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+
 }
 #----------------------------------------
 # Stage
@@ -133,6 +131,9 @@ resource "aws_api_gateway_stage" "rest_api_stage" {
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
   deployment_id = aws_api_gateway_deployment.rest_api_deployment.id
   stage_name    = "dev"
+  depends_on = [
+    aws_api_gateway_deployment.rest_api_deployment
+  ]
 }
 output "lambda_function_name" {
   value = aws_lambda_function.springboot_lambda_basic.function_name
