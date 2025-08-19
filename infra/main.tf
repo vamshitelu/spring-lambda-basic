@@ -53,8 +53,8 @@ resource "aws_lambda_function" "speingboot_lambda_basic" {
 
   memory_size = 1024
   timeout     = 30
-  filename    = "${path.module}/../target/springboot-lambda.jar"
-  source_code_hash = filebase64sha256("${path.module}/../target/springboot-lambda.jar")
+  filename    = "${path.module}/../target/spring-lambda.jar"
+  source_code_hash = filebase64sha256("${path.module}/../target/spring-lambda.jar")
 }
 
 #----------------------------------------
