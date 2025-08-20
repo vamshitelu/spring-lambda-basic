@@ -25,7 +25,7 @@ public class CourseService {
     }
 
     public Course addCourse(Course course){
-        System.out.println("Course count:"+course.getCourseName());
+        System.out.println("Course name:"+course.getCourseName());
         log.info("addCourse method called.");
         list.add(course);
         return course;

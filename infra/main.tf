@@ -113,7 +113,51 @@ resource "aws_api_gateway_integration" "lambda_integration" {
   type        = "AWS_PROXY"
   uri         = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${aws_lambda_function.springboot_lambda_basic.arn}/invocations"
 }
+#----------------------------------------
+# Cognito User Pool(Auth)
+#----------------------------------------
+resource "aws_cognito_user_pool" "user_pool" {
+  name = "springboot-user-pool"
+}
 
+resource "aws_cognito_user_pool_client" "user_pool_client" {
+  name         = "springboot-user-pool-client"
+  user_pool_id = aws_cognito_user_pool.user_pool.id
+  generate_secret = false
+}
+#---------------------------------------
+# api gateway authorizer
+#---------------------------------------
+resource "aws_api_gateway_authorizer" "cognito_auth" {
+  name        = "cognito-authorizer"
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  identity_source = "method.request.header.Authorization"
+  type        = "COGNITO_USER_POOLS"
+  provider_arns = [aws_cognito_user_pool.user_pool.arn]
+}
+#---------------------------------------------
+# Secure Resource (/course)
+#---------------------------------------------
+resource "aws_api_gateway_resource" "secure" {
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  parent_id = data.aws_api_gateway_resource.root.id
+  path_part = "course"
+}
+resource "aws_api_gateway_method" "secure_method" {
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  resource_id = aws_api_gateway_resource.secure.id
+  http_method = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito_auth.id
+}
+resource "aws_api_gateway_integration" "secure_integration" {
+  http_method = aws_api_gateway_method.secure_method.http_method
+  resource_id = aws_api_gateway_resource.secure.id
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  integration_http_method = "POST"
+  type        = "AWS_PROXY"
+  uri         = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${aws_lambda_function.springboot_lambda_basic.arn}"
+}
 #----------------------------------------
 # Deployment
 #----------------------------------------
@@ -141,6 +185,7 @@ resource "aws_api_gateway_stage" "rest_api_stage" {
     aws_api_gateway_deployment.rest_api_deployment
   ]
 }
+
 output "lambda_function_name" {
   value = aws_lambda_function.springboot_lambda_basic.function_name
 }
